@@ -1,0 +1,81 @@
+// ==================== ENUMS ====================
+enum OrderStatus {
+    PENDING, CONFIRMED, SHIPPED, DELIVERED, CANCELLED
+}
+
+enum SizeType {
+    DEFAULT, CUSTOM
+}
+
+// ==================== ENTITIES ====================
+entity Customer {
+    firstName String required,
+    lastName String required,
+    email String required pattern(/^[^@\s]+@[^@\s]+\.[^@\s]+$/),
+    phone String,
+    address String
+}
+
+entity Pillow {
+    name String required,
+    description TextBlob,
+    material String,
+    basePrice BigDecimal required min(0)
+}
+
+entity DefaultSize {
+    name String required, // Ví dụ: "Tiêu chuẩn (40x60 cm)"
+    length Double required min(0),
+    width Double required min(0),
+    extraPrice BigDecimal required min(0) // Giá cộng thêm so với basePrice
+}
+
+entity CustomerOrder {
+    orderCode String required unique,
+    orderDate Instant required,
+    status OrderStatus required,
+    totalAmount BigDecimal required min(0)
+}
+
+entity OrderItem {
+    quantity Integer required min(1),
+    sizeType SizeType required,
+    customLength Double min(0), // Số đo chiều dài của khách (Dùng khi sizeType = CUSTOM)
+    customWidth Double min(0),  // Số đo chiều rộng của khách (Dùng khi sizeType = CUSTOM)
+    price BigDecimal required min(0) // Giá thành phần cho item này
+}
+
+// ==================== RELATIONSHIPS ====================
+relationship OneToMany {
+    // Một khách hàng có thể có nhiều đơn hàng
+    Customer{order} to CustomerOrder{customer},
+    
+    // Một đơn hàng có thể có nhiều sản phẩm chi tiết
+    CustomerOrder{orderItem} to OrderItem{order},
+    
+    // Một mẫu gối có thể có nhiều size mặc định khác nhau
+    Pillow{defaultSize} to DefaultSize{pillow}
+}
+
+relationship ManyToOne {
+    // Một item trong giỏ hàng tham chiếu đến mẫu gối nào
+    OrderItem{pillow(name)} to Pillow,
+    
+    // Một item tham chiếu đến size mặc định (có thể null nếu khách chọn CUSTOM)
+    OrderItem{defaultSize(name)} to DefaultSize
+}
+
+// ==================== OPTIONS ====================
+// Sử dụng pagination tiêu chuẩn cho tất cả các entity (phiên bản JHipster mới nhất)
+paginate * with pagination
+
+// Tạo service layer cho tất cả các entity để dễ dàng xử lý business logic tính giá
+service * with serviceClass
+
+// ==================== BỔ SUNG QUAN HỆ VỚI USER CỦA JHIPSTER ====================
+relationship OneToOne {
+    // Liên kết Customer với tài khoản User mặc định của JHipster.
+    // (login) nghĩa là trên giao diện Customer sẽ hiển thị login name của User để dễ quản lý.
+    Customer{user(login)} to User with builtInEntity
+}
+

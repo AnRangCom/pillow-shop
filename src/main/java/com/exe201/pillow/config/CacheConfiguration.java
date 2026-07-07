@@ -44,6 +44,14 @@ public class CacheConfiguration {
             createCache(cm, com.exe201.pillow.domain.User.class.getName());
             createCache(cm, com.exe201.pillow.domain.Authority.class.getName());
             createCache(cm, com.exe201.pillow.domain.User.class.getName() + ".authorities");
+            createCache(cm, com.exe201.pillow.domain.Customer.class.getName());
+            createCache(cm, com.exe201.pillow.domain.Customer.class.getName() + ".orders");
+            createCache(cm, com.exe201.pillow.domain.Pillow.class.getName());
+            createCache(cm, com.exe201.pillow.domain.Pillow.class.getName() + ".defaultSizes");
+            createCache(cm, com.exe201.pillow.domain.DefaultSize.class.getName());
+            createCache(cm, com.exe201.pillow.domain.CustomerOrder.class.getName());
+            createCache(cm, com.exe201.pillow.domain.CustomerOrder.class.getName() + ".orderItems");
+            createCache(cm, com.exe201.pillow.domain.OrderItem.class.getName());
             // jhipster-needle-ehcache-add-entry
         };
     }
