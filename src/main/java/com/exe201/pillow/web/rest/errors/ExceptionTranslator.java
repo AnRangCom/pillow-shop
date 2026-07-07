@@ -62,6 +62,58 @@ public class ExceptionTranslator extends ResponseEntityExceptionHandler {
     }
 
     @ExceptionHandler
+    public ResponseEntity<Object> handleInvalidOrderStatusException(
+        com.exe201.pillow.service.exceptions.InvalidOrderStatusException ex,
+        NativeWebRequest request
+    ) {
+        LOG.debug("Invalid order status exception:", ex);
+        ProblemDetailWithCause pdCause = ProblemDetailWithCauseBuilder.instance()
+            .withStatus(HttpStatus.BAD_REQUEST.value())
+            .withDetail(ex.getMessage())
+            .build();
+        return handleExceptionInternal(ex, pdCause, null, HttpStatus.BAD_REQUEST, request);
+    }
+
+    @ExceptionHandler
+    public ResponseEntity<Object> handleInsufficientDataException(
+        com.exe201.pillow.service.exceptions.InsufficientDataException ex,
+        NativeWebRequest request
+    ) {
+        LOG.debug("Insufficient data exception:", ex);
+        ProblemDetailWithCause pdCause = ProblemDetailWithCauseBuilder.instance()
+            .withStatus(HttpStatus.BAD_REQUEST.value())
+            .withDetail(ex.getMessage())
+            .build();
+        return handleExceptionInternal(ex, pdCause, null, HttpStatus.BAD_REQUEST, request);
+    }
+
+    @ExceptionHandler
+    public ResponseEntity<Object> handleOrderNotFoundException(
+        com.exe201.pillow.service.exceptions.OrderNotFoundException ex,
+        NativeWebRequest request
+    ) {
+        LOG.debug("Order not found exception:", ex);
+        ProblemDetailWithCause pdCause = ProblemDetailWithCauseBuilder.instance()
+            .withStatus(HttpStatus.NOT_FOUND.value())
+            .withDetail(ex.getMessage())
+            .build();
+        return handleExceptionInternal(ex, pdCause, null, HttpStatus.NOT_FOUND, request);
+    }
+
+    @ExceptionHandler
+    public ResponseEntity<Object> handlePillowNotFoundException(
+        com.exe201.pillow.service.exceptions.PillowNotFoundException ex,
+        NativeWebRequest request
+    ) {
+        LOG.debug("Pillow not found exception:", ex);
+        ProblemDetailWithCause pdCause = ProblemDetailWithCauseBuilder.instance()
+            .withStatus(HttpStatus.NOT_FOUND.value())
+            .withDetail(ex.getMessage())
+            .build();
+        return handleExceptionInternal(ex, pdCause, null, HttpStatus.NOT_FOUND, request);
+    }
+
+    @ExceptionHandler
     public ResponseEntity<Object> handleAnyException(Throwable ex, NativeWebRequest request) {
         LOG.debug("Converting Exception to Problem Details:", ex);
         ProblemDetailWithCause pdCause = wrapAndCustomizeProblem(ex, request);

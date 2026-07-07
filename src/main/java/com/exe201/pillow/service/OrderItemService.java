@@ -1,7 +1,13 @@
 package com.exe201.pillow.service;
 
+import com.exe201.pillow.domain.DefaultSize;
 import com.exe201.pillow.domain.OrderItem;
+import com.exe201.pillow.domain.Pillow;
+import com.exe201.pillow.domain.enumeration.SizeType;
 import com.exe201.pillow.repository.OrderItemRepository;
+import com.exe201.pillow.service.exceptions.InsufficientDataException;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.Optional;
 import java.util.function.Consumer;
 import org.slf4j.Logger;
@@ -11,14 +17,13 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/**
- * Service Implementation for managing {@link com.exe201.pillow.domain.OrderItem}.
- */
 @Service
 @Transactional
 public class OrderItemService {
 
     private static final Logger LOG = LoggerFactory.getLogger(OrderItemService.class);
+
+    private static final double STANDARD_AREA = 1.0;
 
     private final OrderItemRepository orderItemRepository;
 
@@ -26,34 +31,18 @@ public class OrderItemService {
         this.orderItemRepository = orderItemRepository;
     }
 
-    /**
-     * Save a orderItem.
-     *
-     * @param orderItem the entity to save.
-     * @return the persisted entity.
-     */
     public OrderItem save(OrderItem orderItem) {
         LOG.debug("Request to save OrderItem : {}", orderItem);
+        calculatePrice(orderItem);
         return orderItemRepository.save(orderItem);
     }
 
-    /**
-     * Update a orderItem.
-     *
-     * @param orderItem the entity to save.
-     * @return the persisted entity.
-     */
     public OrderItem update(OrderItem orderItem) {
         LOG.debug("Request to update OrderItem : {}", orderItem);
+        calculatePrice(orderItem);
         return orderItemRepository.save(orderItem);
     }
 
-    /**
-     * Partially update a orderItem.
-     *
-     * @param orderItem the entity to update partially.
-     * @return the persisted entity.
-     */
     public Optional<OrderItem> partialUpdate(OrderItem orderItem) {
         LOG.debug("Request to partially update OrderItem : {}", orderItem);
 
@@ -71,47 +60,55 @@ public class OrderItemService {
             .map(orderItemRepository::save);
     }
 
-    /**
-     * Get all the orderItems.
-     *
-     * @param pageable the pagination information.
-     * @return the list of entities.
-     */
     @Transactional(readOnly = true)
     public Page<OrderItem> findAll(Pageable pageable) {
         LOG.debug("Request to get all OrderItems");
         return orderItemRepository.findAll(pageable);
     }
 
-    /**
-     * Get all the orderItems with eager load of many-to-many relationships.
-     *
-     * @return the list of entities.
-     */
     public Page<OrderItem> findAllWithEagerRelationships(Pageable pageable) {
         return orderItemRepository.findAllWithEagerRelationships(pageable);
     }
 
-    /**
-     * Get one orderItem by id.
-     *
-     * @param id the id of the entity.
-     * @return the entity.
-     */
     @Transactional(readOnly = true)
     public Optional<OrderItem> findOne(Long id) {
         LOG.debug("Request to get OrderItem : {}", id);
         return orderItemRepository.findOneWithEagerRelationships(id);
     }
 
-    /**
-     * Delete the orderItem by id.
-     *
-     * @param id the id of the entity.
-     */
     public void delete(Long id) {
         LOG.debug("Request to delete OrderItem : {}", id);
         orderItemRepository.deleteById(id);
+    }
+
+    private void calculatePrice(OrderItem orderItem) {
+        if (orderItem.getPillow() == null) {
+            throw new InsufficientDataException("Pillow is required for order item");
+        }
+
+        SizeType sizeType = orderItem.getSizeType();
+        if (sizeType == null) {
+            throw new InsufficientDataException("SizeType is required");
+        }
+
+        Pillow pillow = orderItem.getPillow();
+        BigDecimal basePrice = pillow.getBasePrice();
+
+        if (sizeType == SizeType.DEFAULT) {
+            if (orderItem.getDefaultSize() == null) {
+                throw new InsufficientDataException("DefaultSize is required when SizeType is DEFAULT");
+            }
+            DefaultSize defaultSize = orderItem.getDefaultSize();
+            BigDecimal extraPrice = defaultSize.getExtraPrice();
+            orderItem.setPrice(basePrice.add(extraPrice));
+        } else {
+            if (orderItem.getCustomLength() == null || orderItem.getCustomWidth() == null) {
+                throw new InsufficientDataException("Custom length and width are required when SizeType is CUSTOM");
+            }
+            double area = orderItem.getCustomLength() * orderItem.getCustomWidth();
+            BigDecimal areaFactor = BigDecimal.valueOf(area / STANDARD_AREA);
+            orderItem.setPrice(basePrice.multiply(areaFactor).setScale(2, RoundingMode.HALF_UP));
+        }
     }
 
     private <T> void updateIfPresent(Consumer<T> setter, T value) {

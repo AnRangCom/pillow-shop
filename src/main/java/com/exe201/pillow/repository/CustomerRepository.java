@@ -9,9 +9,6 @@ import org.springframework.data.jpa.repository.*;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-/**
- * Spring Data JPA repository for the Customer entity.
- */
 @Repository
 public interface CustomerRepository extends JpaRepository<Customer, Long> {
     default Optional<Customer> findOneWithEagerRelationships(Long id) {
@@ -37,4 +34,8 @@ public interface CustomerRepository extends JpaRepository<Customer, Long> {
 
     @Query("select customer from Customer customer left join fetch customer.user where customer.id =:id")
     Optional<Customer> findOneWithToOneRelationships(@Param("id") Long id);
+
+    Optional<Customer> findByEmail(String email);
+
+    Page<Customer> findByFirstNameContainingIgnoreCaseOrLastNameContainingIgnoreCase(String firstName, String lastName, Pageable pageable);
 }

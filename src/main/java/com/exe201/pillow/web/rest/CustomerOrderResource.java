@@ -1,15 +1,17 @@
 package com.exe201.pillow.web.rest;
 
 import com.exe201.pillow.domain.CustomerOrder;
+import com.exe201.pillow.domain.enumeration.OrderStatus;
 import com.exe201.pillow.repository.CustomerOrderRepository;
 import com.exe201.pillow.service.CustomerOrderService;
+import com.exe201.pillow.service.dto.CustomerOrderDTO;
+import com.exe201.pillow.service.mapper.CustomerOrderMapper;
 import com.exe201.pillow.web.rest.errors.BadRequestAlertException;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotNull;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.time.Instant;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,150 +26,133 @@ import tech.jhipster.web.util.HeaderUtil;
 import tech.jhipster.web.util.PaginationUtil;
 import tech.jhipster.web.util.ResponseUtil;
 
-/**
- * REST controller for managing {@link com.exe201.pillow.domain.CustomerOrder}.
- */
 @RestController
 @RequestMapping("/api/customer-orders")
 public class CustomerOrderResource {
 
     private static final Logger LOG = LoggerFactory.getLogger(CustomerOrderResource.class);
-
     private static final String ENTITY_NAME = "customerOrder";
 
     @Value("${jhipster.clientApp.name:pillowshop}")
     private String applicationName;
 
     private final CustomerOrderService customerOrderService;
-
     private final CustomerOrderRepository customerOrderRepository;
+    private final CustomerOrderMapper customerOrderMapper;
 
-    public CustomerOrderResource(CustomerOrderService customerOrderService, CustomerOrderRepository customerOrderRepository) {
+    public CustomerOrderResource(
+        CustomerOrderService customerOrderService,
+        CustomerOrderRepository customerOrderRepository,
+        CustomerOrderMapper customerOrderMapper
+    ) {
         this.customerOrderService = customerOrderService;
         this.customerOrderRepository = customerOrderRepository;
+        this.customerOrderMapper = customerOrderMapper;
     }
 
-    /**
-     * {@code POST  /customer-orders} : Create a new customerOrder.
-     *
-     * @param customerOrder the customerOrder to create.
-     * @return the {@link ResponseEntity} with status {@code 201 (Created)} and with body the new customerOrder, or with status {@code 400 (Bad Request)} if the customerOrder has already an ID.
-     * @throws URISyntaxException if the Location URI syntax is incorrect.
-     */
     @PostMapping("")
-    public ResponseEntity<CustomerOrder> createCustomerOrder(@Valid @RequestBody CustomerOrder customerOrder) throws URISyntaxException {
-        LOG.debug("REST request to save CustomerOrder : {}", customerOrder);
-        if (customerOrder.getId() != null) {
+    public ResponseEntity<CustomerOrderDTO> createCustomerOrder(@Valid @RequestBody CustomerOrderDTO customerOrderDTO)
+        throws URISyntaxException {
+        LOG.debug("REST request to save CustomerOrder : {}", customerOrderDTO);
+        if (customerOrderDTO.getId() != null) {
             throw new BadRequestAlertException("A new customerOrder cannot already have an ID", ENTITY_NAME, "idexists");
         }
+        CustomerOrder customerOrder = customerOrderMapper.toEntity(customerOrderDTO);
         customerOrder = customerOrderService.save(customerOrder);
-        return ResponseEntity.created(new URI("/api/customer-orders/" + customerOrder.getId()))
-            .headers(HeaderUtil.createEntityCreationAlert(applicationName, false, ENTITY_NAME, customerOrder.getId().toString()))
-            .body(customerOrder);
+        CustomerOrderDTO result = customerOrderMapper.toDto(customerOrder);
+        return ResponseEntity.created(new URI("/api/customer-orders/" + result.getId()))
+            .headers(HeaderUtil.createEntityCreationAlert(applicationName, false, ENTITY_NAME, result.getId().toString()))
+            .body(result);
     }
 
-    /**
-     * {@code PUT  /customer-orders/:id} : Updates an existing customerOrder.
-     *
-     * @param id the id of the customerOrder to save.
-     * @param customerOrder the customerOrder to update.
-     * @return the {@link ResponseEntity} with status {@code 200 (OK)} and with body the updated customerOrder,
-     * or with status {@code 400 (Bad Request)} if the customerOrder is not valid,
-     * or with status {@code 500 (Internal Server Error)} if the customerOrder couldn't be updated.
-     * @throws URISyntaxException if the Location URI syntax is incorrect.
-     */
     @PutMapping("/{id}")
-    public ResponseEntity<CustomerOrder> updateCustomerOrder(
-        @PathVariable(value = "id", required = false) final Long id,
-        @Valid @RequestBody CustomerOrder customerOrder
+    public ResponseEntity<CustomerOrderDTO> updateCustomerOrder(
+        @PathVariable(value = "id") final Long id,
+        @Valid @RequestBody CustomerOrderDTO customerOrderDTO
     ) throws URISyntaxException {
-        LOG.debug("REST request to update CustomerOrder : {}, {}", id, customerOrder);
-        if (customerOrder.getId() == null) {
+        LOG.debug("REST request to update CustomerOrder : {}, {}", id, customerOrderDTO);
+        if (customerOrderDTO.getId() == null) {
             throw new BadRequestAlertException("Invalid id", ENTITY_NAME, "idnull");
         }
-        if (!Objects.equals(id, customerOrder.getId())) {
+        if (!id.equals(customerOrderDTO.getId())) {
             throw new BadRequestAlertException("Invalid ID", ENTITY_NAME, "idinvalid");
         }
-
         if (!customerOrderRepository.existsById(id)) {
             throw new BadRequestAlertException("Entity not found", ENTITY_NAME, "idnotfound");
         }
-
+        CustomerOrder customerOrder = customerOrderMapper.toEntity(customerOrderDTO);
         customerOrder = customerOrderService.update(customerOrder);
+        CustomerOrderDTO result = customerOrderMapper.toDto(customerOrder);
         return ResponseEntity.ok()
-            .headers(HeaderUtil.createEntityUpdateAlert(applicationName, false, ENTITY_NAME, customerOrder.getId().toString()))
-            .body(customerOrder);
+            .headers(HeaderUtil.createEntityUpdateAlert(applicationName, false, ENTITY_NAME, result.getId().toString()))
+            .body(result);
     }
 
-    /**
-     * {@code PATCH  /customer-orders/:id} : Partial updates given fields of an existing customerOrder, field will ignore if it is null
-     *
-     * @param id the id of the customerOrder to save.
-     * @param customerOrder the customerOrder to update.
-     * @return the {@link ResponseEntity} with status {@code 200 (OK)} and with body the updated customerOrder,
-     * or with status {@code 400 (Bad Request)} if the customerOrder is not valid,
-     * or with status {@code 404 (Not Found)} if the customerOrder is not found,
-     * or with status {@code 500 (Internal Server Error)} if the customerOrder couldn't be updated.
-     * @throws URISyntaxException if the Location URI syntax is incorrect.
-     */
     @PatchMapping(value = "/{id}", consumes = { "application/json", "application/merge-patch+json" })
-    public ResponseEntity<CustomerOrder> partialUpdateCustomerOrder(
-        @PathVariable(value = "id", required = false) final Long id,
-        @NotNull @RequestBody CustomerOrder customerOrder
+    public ResponseEntity<CustomerOrderDTO> partialUpdateCustomerOrder(
+        @PathVariable(value = "id") final Long id,
+        @RequestBody CustomerOrderDTO customerOrderDTO
     ) throws URISyntaxException {
-        LOG.debug("REST request to partial update CustomerOrder partially : {}, {}", id, customerOrder);
-        if (customerOrder.getId() == null) {
+        LOG.debug("REST request to partial update CustomerOrder : {}, {}", id, customerOrderDTO);
+        if (customerOrderDTO.getId() == null) {
             throw new BadRequestAlertException("Invalid id", ENTITY_NAME, "idnull");
         }
-        if (!Objects.equals(id, customerOrder.getId())) {
+        if (!id.equals(customerOrderDTO.getId())) {
             throw new BadRequestAlertException("Invalid ID", ENTITY_NAME, "idinvalid");
         }
-
         if (!customerOrderRepository.existsById(id)) {
             throw new BadRequestAlertException("Entity not found", ENTITY_NAME, "idnotfound");
         }
-
+        CustomerOrder customerOrder = customerOrderMapper.toEntity(customerOrderDTO);
         Optional<CustomerOrder> result = customerOrderService.partialUpdate(customerOrder);
-
         return ResponseUtil.wrapOrNotFound(
-            result,
-            HeaderUtil.createEntityUpdateAlert(applicationName, false, ENTITY_NAME, customerOrder.getId().toString())
+            result.map(customerOrderMapper::toDto),
+            HeaderUtil.createEntityUpdateAlert(applicationName, false, ENTITY_NAME, customerOrderDTO.getId().toString())
         );
     }
 
-    /**
-     * {@code GET  /customer-orders} : get all the Customer Orders.
-     *
-     * @param pageable the pagination information.
-     * @return the {@link ResponseEntity} with status {@code 200 (OK)} and the list of Customer Orders in body.
-     */
     @GetMapping("")
-    public ResponseEntity<List<CustomerOrder>> getAllCustomerOrders(@org.springdoc.core.annotations.ParameterObject Pageable pageable) {
+    public ResponseEntity<List<CustomerOrderDTO>> getAllCustomerOrders(
+        @org.springdoc.core.annotations.ParameterObject Pageable pageable,
+        @RequestParam(required = false) OrderStatus status,
+        @RequestParam(required = false) Long customerId,
+        @RequestParam(required = false) Instant startDate,
+        @RequestParam(required = false) Instant endDate
+    ) {
         LOG.debug("REST request to get a page of CustomerOrders");
-        Page<CustomerOrder> page = customerOrderService.findAll(pageable);
+        Page<CustomerOrder> page;
+        if (status != null && customerId != null) {
+            page = customerOrderService.findByStatusAndCustomerId(status, customerId, pageable);
+        } else if (status != null) {
+            page = customerOrderService.findByStatus(status, pageable);
+        } else if (customerId != null) {
+            page = customerOrderService.findByCustomerId(customerId, pageable);
+        } else if (startDate != null && endDate != null) {
+            page = customerOrderService.findByOrderDateBetween(startDate, endDate, pageable);
+        } else {
+            page = customerOrderService.findAll(pageable);
+        }
         HttpHeaders headers = PaginationUtil.generatePaginationHttpHeaders(ServletUriComponentsBuilder.fromCurrentRequest(), page);
-        return ResponseEntity.ok().headers(headers).body(page.getContent());
+        return ResponseEntity.ok().headers(headers).body(customerOrderMapper.toDto(page.getContent()));
     }
 
-    /**
-     * {@code GET  /customer-orders/:id} : get the "id" customerOrder.
-     *
-     * @param id the id of the customerOrder to retrieve.
-     * @return the {@link ResponseEntity} with status {@code 200 (OK)} and with body the customerOrder, or with status {@code 404 (Not Found)}.
-     */
     @GetMapping("/{id}")
-    public ResponseEntity<CustomerOrder> getCustomerOrder(@PathVariable("id") Long id) {
+    public ResponseEntity<CustomerOrderDTO> getCustomerOrder(@PathVariable("id") Long id) {
         LOG.debug("REST request to get CustomerOrder : {}", id);
         Optional<CustomerOrder> customerOrder = customerOrderService.findOne(id);
-        return ResponseUtil.wrapOrNotFound(customerOrder);
+        return ResponseUtil.wrapOrNotFound(customerOrder.map(customerOrderMapper::toDto));
     }
 
-    /**
-     * {@code DELETE  /customer-orders/:id} : delete the "id" customerOrder.
-     *
-     * @param id the id of the customerOrder to delete.
-     * @return the {@link ResponseEntity} with status {@code 204 (NO_CONTENT)}.
-     */
+    @PatchMapping("/{id}/status")
+    public ResponseEntity<CustomerOrderDTO> updateOrderStatus(@PathVariable("id") Long id, @RequestParam OrderStatus status) {
+        LOG.debug("REST request to update CustomerOrder status : {}, {}", id, status);
+        CustomerOrder customerOrder = customerOrderService.updateOrderStatus(id, status);
+        CustomerOrderDTO result = customerOrderMapper.toDto(customerOrder);
+        return ResponseEntity.ok()
+            .headers(HeaderUtil.createEntityUpdateAlert(applicationName, false, ENTITY_NAME, id.toString()))
+            .body(result);
+    }
+
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteCustomerOrder(@PathVariable("id") Long id) {
         LOG.debug("REST request to delete CustomerOrder : {}", id);
