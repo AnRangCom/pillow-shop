@@ -2,6 +2,7 @@ package com.exe201.pillow.service;
 
 import com.exe201.pillow.domain.Pillow;
 import com.exe201.pillow.repository.PillowRepository;
+import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
 import org.slf4j.Logger;
@@ -92,6 +93,29 @@ public class PillowService {
     public Optional<Pillow> findOne(Long id) {
         LOG.debug("Request to get Pillow : {}", id);
         return pillowRepository.findById(id);
+    }
+
+    /**
+     * Get all pillows as list (no pagination).
+     *
+     * @return the list of entities.
+     */
+    @Transactional(readOnly = true)
+    public List<Pillow> findAllEntities() {
+        LOG.debug("Request to get all Pillows as list");
+        return pillowRepository.findAll();
+    }
+
+    /**
+     * Get pillows by ids.
+     *
+     * @param ids the list of ids.
+     * @return the list of entities.
+     */
+    @Transactional(readOnly = true)
+    public List<Pillow> findByIds(List<Long> ids) {
+        LOG.debug("Request to get Pillows by ids : {}", ids);
+        return pillowRepository.findAllById(ids);
     }
 
     /**
